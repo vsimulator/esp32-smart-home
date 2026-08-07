@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>ESP32 Smart Home</title>
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+
+            margin: 0;
+
+            font-family: Arial, sans-serif;
+
+            background: #f2f4f7;
+
+            color: #222;
+        }
+
+
+        .container {
+
+            max-width: 420px;
+
+            margin: auto;
+
+            padding: 20px;
+        }
+
+
+        h1 {
+
+            text-align: center;
+
+            margin-bottom: 25px;
+        }
+
+
+        .connection {
+
+            background: white;
+
+            padding: 15px;
+
+            border-radius: 12px;
+
+            margin-bottom: 15px;
+
+            text-align: center;
+
+            box-shadow:
+                0 3px 10px
+                rgba(0,0,0,0.08);
+        }
+
+
+        .online {
+
+            color: green;
+
+            font-weight: bold;
+        }
+
+
+        .offline {
+
+            color: red;
+
+            font-weight: bold;
+        }
+
+
+        .card {
+
+            background: white;
+
+            padding: 20px;
+
+            border-radius: 15px;
+
+            margin-bottom: 15px;
+
+            box-shadow:
+                0 3px 10px
+                rgba(0,0,0,0.08);
+        }
+
+
+        .card h2 {
+
+            margin-top: 0;
+        }
+
+
+        .status {
+
+            font-size: 20px;
+
+            margin-bottom: 15px;
+        }
+
+
+        .status-on {
+
+            color: green;
+
+            font-weight: bold;
+        }
+
+
+        .status-off {
+
+            color: #777;
+
+            font-weight: bold;
+        }
+
+
+        button {
+
+            width: 100%;
+
+            padding: 15px;
+
+            border: none;
+
+            border-radius: 10px;
+
+            font-size: 18px;
+
+            cursor: pointer;
+        }
+
+
+        .button-on {
+
+            background: #2ecc71;
+
+            color: white;
+        }
+
+
+        .button-off {
+
+            background: #e74c3c;
+
+            color: white;
+        }
+
+
+        .info {
+
+            font-size: 14px;
+
+            color: #666;
+
+            text-align: center;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+    <h1>
+        ESP32 SMART HOME
+    </h1>
+
+
+    <!-- CONNECTION -->
+
+    <div class="connection">
+
+        MQTT :
+
+        <span id="mqttStatus"
+              class="offline">
+
+            Connecting...
+
+        </span>
+
+    </div>
+
+
+    <!-- RELAY 1 -->
+
+    <div class="card">
+
+        <h2>
+            Relay 1
+        </h2>
+
+
+        <div
+            id="relay1Status"
+            class="status status-off"
+        >
+
+            ● OFF
+
+        </div>
+
+
+        <button
+            id="relay1Button"
+            class="button-on"
+            onclick="toggleRelay1()"
+        >
+
+            NYALAKAN
+
+        </button>
+
+    </div>
+
+
+    <!-- RELAY 2 -->
+
+    <div class="card">
+
+        <h2>
+            Relay 2
+        </h2>
+
+
+        <div
+            id="relay2Status"
+            class="status status-off"
+        >
+
+            ● OFF
+
+        </div>
+
+
+        <button
+            id="relay2Button"
+            class="button-on"
+            onclick="toggleRelay2()"
+        >
+
+            NYALAKAN
+
+        </button>
+
+    </div>
+
+
+    <div class="info">
+
+        MQTT IoT Dashboard
+
+    </div>
+
+
+</div>
+
+
+
+<!-- MQTT LIBRARY -->
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+
+<script>
+
+
+// =====================================
+// MQTT SERVER
+// =====================================
+
+const broker =
+    "wss://broker.hivemq.com:8884/mqtt";
+
+
+// =====================================
+// CONNECT
+// =====================================
+
+const client =
+    mqtt.connect(broker);
+
+
+// =====================================
+// TOPIC
+// =====================================
+
+// Relay 1
+
+const relay1Command =
+    "belajar/esp32/relay1";
+
+const relay1Status =
+    "belajar/esp32/relay1/status";
+
+
+// Relay 2
+
+const relay2Command =
+    "belajar/esp32/relay2";
+
+const relay2Status =
+    "belajar/esp32/relay2/status";
+
+
+// =====================================
+// MQTT CONNECTED
+// =====================================
+
+client.on(
+    "connect",
+    function()
+    {
+
+        console.log(
+            "MQTT Connected"
+        );
+
+
+        document
+            .getElementById(
+                "mqttStatus"
+            )
+            .innerText =
+                "Connected";
+
+
+        document
+            .getElementById(
+                "mqttStatus"
+            )
+            .className =
+                "online";
+
+
+        // Subscribe status relay
+
+        client.subscribe(
+            relay1Status
+        );
+
+
+        client.subscribe(
+            relay2Status
+        );
+
+    }
+);
+
+
+// =====================================
+// MQTT MESSAGE
+// =====================================
+
+client.on(
+    "message",
+    function(topic, message)
+    {
+
+        const value =
+            message.toString();
+
+
+        console.log(
+            topic,
+            value
+        );
+
+
+        // Relay 1
+
+        if (
+            topic === relay1Status
+        )
+        {
+
+            updateRelay1(
+                value === "ON"
+            );
+
+        }
+
+
+        // Relay 2
+
+        if (
+            topic === relay2Status
+        )
+        {
+
+            updateRelay2(
+                value === "ON"
+            );
+
+        }
+
+    }
+);
+
+
+// =====================================
+// RELAY 1
+// =====================================
+
+function updateRelay1(
+    state
+)
+{
+
+    const status =
+        document.getElementById(
+            "relay1Status"
+        );
+
+
+    const button =
+        document.getElementById(
+            "relay1Button"
+        );
+
+
+    if (state)
+    {
+
+        status.innerText =
+            "● ON";
+
+        status.className =
+            "status status-on";
+
+
+        button.innerText =
+            "MATIKAN";
+
+        button.className =
+            "button-off";
+
+    }
+
+    else
+    {
+
+        status.innerText =
+            "● OFF";
+
+        status.className =
+            "status status-off";
+
+
+        button.innerText =
+            "NYALAKAN";
+
+        button.className =
+            "button-on";
+
+    }
+
+}
+
+
+// =====================================
+// RELAY 2
+// =====================================
+
+function updateRelay2(
+    state
+)
+{
+
+    const status =
+        document.getElementById(
+            "relay2Status"
+        );
+
+
+    const button =
+        document.getElementById(
+            "relay2Button"
+        );
+
+
+    if (state)
+    {
+
+        status.innerText =
+            "● ON";
+
+        status.className =
+            "status status-on";
+
+
+        button.innerText =
+            "MATIKAN";
+
+        button.className =
+            "button-off";
+
+    }
+
+    else
+    {
+
+        status.innerText =
+            "● OFF";
+
+        status.className =
+            "status status-off";
+
+
+        button.innerText =
+            "NYALAKAN";
+
+        button.className =
+            "button-on";
+
+    }
+
+}
+
+
+// =====================================
+// TOGGLE RELAY 1
+// =====================================
+
+function toggleRelay1()
+{
+
+    const button =
+        document.getElementById(
+            "relay1Button"
+        );
+
+
+    const isOn =
+        button.innerText ===
+        "MATIKAN";
+
+
+    const message =
+        isOn
+            ? "OFF"
+            : "ON";
+
+
+    client.publish(
+        relay1Command,
+        message
+    );
+
+}
+
+
+// =====================================
+// TOGGLE RELAY 2
+// =====================================
+
+function toggleRelay2()
+{
+
+    const button =
+        document.getElementById(
+            "relay2Button"
+        );
+
+
+    const isOn =
+        button.innerText ===
+        "MATIKAN";
+
+
+    const message =
+        isOn
+            ? "OFF"
+            : "ON";
+
+
+    client.publish(
+        relay2Command,
+        message
+    );
+
+}
+
+
+// =====================================
+// MQTT ERROR
+// =====================================
+
+client.on(
+    "error",
+    function(error)
+    {
+
+        console.log(
+            "MQTT Error:",
+            error
+        );
+
+
+        document
+            .getElementById(
+                "mqttStatus"
+            )
+            .innerText =
+                "Error";
+
+
+        document
+            .getElementById(
+                "mqttStatus"
+            )
+            .className =
+                "offline";
+
+    }
+);
+
+
+</script>
+
+
+</body>
+
+</html>
