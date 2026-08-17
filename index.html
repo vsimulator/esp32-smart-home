@@ -266,6 +266,28 @@
 
     </div>
 
+    <div class="card">
+
+    <h2>
+        Sensor
+    </h2>
+
+    <div class="status">
+        🌡 Suhu:
+        <strong id="temperature">
+            -- °C
+        </strong>
+    </div>
+
+    <div class="status">
+        💧 Kelembapan:
+        <strong id="humidity">
+            -- %
+        </strong>
+    </div>
+
+</div>
+
 
     <div class="info">
 
@@ -365,6 +387,14 @@ client.on(
             relay2Status
         );
 
+        client.subscribe(
+            temperatureTopic
+        );
+
+        client.subscribe(
+            humidityTopic
+        );
+
     }
 );
 
@@ -413,6 +443,23 @@ client.on(
                 value === "ON"
             );
 
+        }
+
+        if (topic === temperatureTopic)
+        {
+            document.getElementById(
+                "temperature"
+            ).innerText =
+                message.toString() + " °C";
+        }
+
+
+        if (topic === humidityTopic)
+        {
+            document.getElementById(
+                "humidity"
+            ).innerText =
+                message.toString() + " %";
         }
 
     }
@@ -601,6 +648,15 @@ function toggleRelay2()
     );
 
 }
+
+// =====================================
+// SUHU KELEMBABAN
+// =====================================
+const temperatureTopic =
+    "belajar/esp32/suhu";
+
+const humidityTopic =
+    "belajar/esp32/kelembapan";
 
 
 // =====================================
